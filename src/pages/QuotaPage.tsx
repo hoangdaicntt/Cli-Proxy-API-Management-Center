@@ -10,6 +10,7 @@ import { authFilesApi, configFileApi } from '@/services/api';
 import { UnifiedQuotaSection } from '@/components/quota';
 import type { AuthFileItem } from '@/types';
 import styles from './QuotaPage.module.scss';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 
@@ -59,9 +60,16 @@ export function QuotaPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.pageHeader}>
-        <div className={styles.pageHeaderTop}>
-          <h1 className={styles.pageTitle}>{t('quota_management.title')}</h1>
+      {error && <div className={styles.errorBox}>{error}</div>}
+
+      <Card
+        title={
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>{t('quota_management.title')}</h1>
+            <p className={styles.description}>{t('quota_management.description')}</p>
+          </div>
+        }
+        extra={
           <div className={styles.headerActions}>
             <Button
               variant="secondary"
@@ -75,13 +83,10 @@ export function QuotaPage() {
               {!loading && <IconRefreshCw size={16} />}
             </Button>
           </div>
-        </div>
-        <p className={styles.description}>{t('quota_management.description')}</p>
-      </div>
-
-      {error && <div className={styles.errorBox}>{error}</div>}
-
-      <UnifiedQuotaSection files={files} loading={loading} />
+        }
+      >
+        <UnifiedQuotaSection files={files} loading={loading} />
+      </Card>
     </div>
   );
 }

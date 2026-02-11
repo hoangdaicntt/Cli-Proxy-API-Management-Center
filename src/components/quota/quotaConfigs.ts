@@ -417,8 +417,8 @@ const renderAntigravityItems = (
   return groups.map((group) => {
     const clamped = Math.max(0, Math.min(1, group.remainingFraction));
     const percent = Math.round(clamped * 100);
+    const percentLabel = `${percent}%`;
     const resetLabel = formatRemainingTime(group.resetTime);
-    const text = resetLabel ? `${percent}% - ${resetLabel}` : `${percent}%`;
 
     return h(
       'div',
@@ -432,7 +432,8 @@ const renderAntigravityItems = (
         percent,
         highThreshold: 60,
         mediumThreshold: 20,
-        text
+        text: percentLabel,
+        startText: resetLabel || undefined
       })
     );
   });
@@ -486,9 +487,10 @@ const renderCodexItems = (
       const remaining = clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
       const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
       const windowLabel = window.labelKey ? t(window.labelKey) : window.label;
-      const text = window.resetLabel && window.resetLabel !== '-' && window.resetLabel !== ''
-        ? `${percentLabel} - ${window.resetLabel}`
-        : percentLabel;
+      const startText =
+        window.resetLabel && window.resetLabel !== '-' && window.resetLabel !== ''
+          ? window.resetLabel
+          : undefined;
 
       return h(
         'div',
@@ -502,7 +504,8 @@ const renderCodexItems = (
           percent: remaining,
           highThreshold: 80,
           mediumThreshold: 50,
-          text
+          text: percentLabel,
+          startText
         })
       );
     })
@@ -529,25 +532,11 @@ const renderGeminiCliItems = (
     const clamped = fraction === null ? null : Math.max(0, Math.min(1, fraction));
     const percent = clamped === null ? null : Math.round(clamped * 100);
     const percentLabel = percent === null ? '--' : `${percent}%`;
-    const remainingAmountLabel =
-      bucket.remainingAmount === null || bucket.remainingAmount === undefined
-        ? null
-        : t('gemini_cli_quota.remaining_amount', {
-            count: bucket.remainingAmount,
-          });
     const titleBase =
       bucket.modelIds && bucket.modelIds.length > 0 ? bucket.modelIds.join(', ') : bucket.label;
     const title = bucket.tokenType ? `${titleBase} (${bucket.tokenType})` : titleBase;
 
     const resetLabel = formatRemainingTime(bucket.resetTime);
-
-    let text = percentLabel;
-    if (remainingAmountLabel) {
-      text += ` - ${remainingAmountLabel}`;
-    }
-    if (resetLabel) {
-      text += ` - ${resetLabel}`;
-    }
 
     return h(
       'div',
@@ -561,7 +550,8 @@ const renderGeminiCliItems = (
         percent,
         highThreshold: 60,
         mediumThreshold: 20,
-        text
+        text: percentLabel,
+        startText: resetLabel || undefined
       })
     );
   });
@@ -605,8 +595,8 @@ export const ANTIGRAVITY_CONFIG: QuotaConfig<AntigravityQuotaState, AntigravityQ
 
     const clamped = Math.max(0, Math.min(1, group.remainingFraction));
     const percent = Math.round(clamped * 100);
+    const percentLabel = `${percent}%`;
     const resetLabel = formatRemainingTime(group.resetTime);
-    const text = resetLabel ? `${percent}% - ${resetLabel}` : `${percent}%`;
 
     return h(
       'div',
@@ -615,7 +605,8 @@ export const ANTIGRAVITY_CONFIG: QuotaConfig<AntigravityQuotaState, AntigravityQ
         percent,
         highThreshold: 60,
         mediumThreshold: 20,
-        text
+        text: percentLabel,
+        startText: resetLabel || undefined
       })
     );
   },
@@ -686,9 +677,10 @@ export const CODEX_CONFIG: QuotaConfig<
     const clampedUsed = used === null ? null : Math.max(0, Math.min(100, used));
     const remaining = clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
     const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
-    const text = window.resetLabel && window.resetLabel !== '-' && window.resetLabel !== ''
-      ? `${percentLabel} - ${window.resetLabel}`
-      : percentLabel;
+    const startText =
+      window.resetLabel && window.resetLabel !== '-' && window.resetLabel !== ''
+        ? window.resetLabel
+        : undefined;
 
     return h(
       'div',
@@ -697,7 +689,8 @@ export const CODEX_CONFIG: QuotaConfig<
         percent: remaining,
         highThreshold: 80,
         mediumThreshold: 50,
-        text
+        text: percentLabel,
+        startText
       })
     );
   },
@@ -730,7 +723,7 @@ export const GEMINI_CLI_CONFIG: QuotaConfig<GeminiCliQuotaState, GeminiCliQuotaB
       label: bucket.label,
     }));
   },
-  renderQuotaCell: (quota: GeminiCliQuotaState, columnId: string, t: TFunction, helpers: QuotaRenderHelpers) => {
+  renderQuotaCell: (quota: GeminiCliQuotaState, columnId: string, _t: TFunction, helpers: QuotaRenderHelpers) => {
     const { styles: styleMap, QuotaProgressBar } = helpers;
     const { createElement: h } = React;
     const bucket = quota.buckets?.find((b) => b.id === columnId);
@@ -740,21 +733,7 @@ export const GEMINI_CLI_CONFIG: QuotaConfig<GeminiCliQuotaState, GeminiCliQuotaB
     const clamped = fraction === null ? null : Math.max(0, Math.min(1, fraction));
     const percent = clamped === null ? null : Math.round(clamped * 100);
     const percentLabel = percent === null ? '--' : `${percent}%`;
-    const remainingAmountLabel =
-      bucket.remainingAmount === null || bucket.remainingAmount === undefined
-        ? null
-        : t('gemini_cli_quota.remaining_amount', {
-            count: bucket.remainingAmount,
-          });
-
     const resetLabel = formatRemainingTime(bucket.resetTime);
-    let text = percentLabel;
-    if (remainingAmountLabel) {
-      text += ` - ${remainingAmountLabel}`;
-    }
-    if (resetLabel) {
-      text += ` - ${resetLabel}`;
-    }
 
     return h(
       'div',
@@ -763,9 +742,9 @@ export const GEMINI_CLI_CONFIG: QuotaConfig<GeminiCliQuotaState, GeminiCliQuotaB
         percent,
         highThreshold: 60,
         mediumThreshold: 20,
-        text
+        text: percentLabel,
+        startText: resetLabel || undefined
       })
     );
   },
 };
-

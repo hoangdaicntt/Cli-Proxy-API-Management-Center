@@ -17,6 +17,7 @@ import { ANTIGRAVITY_CONFIG, CODEX_CONFIG, GEMINI_CLI_CONFIG } from './quotaConf
 
 type UnifiedQuotaRow = {
   id: string;
+  serial: number;
   fileName: string;
   cells: ReactNode[];
   planLabel?: string | null;
@@ -33,6 +34,16 @@ interface UnifiedQuotaSectionProps {
   files: AuthFileItem[];
   loading: boolean;
 }
+
+const formatDisplayFileName = (fileName: string): string => {
+  let displayName = fileName;
+  displayName = displayName.replace(/^(antigravity-|codex-|gemini-)/i, '');
+  displayName = displayName.replace(/\.json$/i, '');
+  displayName = displayName.replace(/-.*/, '');
+  displayName = displayName.replace(/_gmail/gi, '@gmail');
+  displayName = displayName.replace(/_/g, '.');
+  return displayName;
+};
 
 const getCodexPlanLabel = (
   planType: string | null | undefined,
@@ -209,6 +220,7 @@ export function UnifiedQuotaSection({ files, loading }: UnifiedQuotaSectionProps
 
       return {
         id: `antigravity:${file.name}`,
+        serial: 0,
         fileName: file.name,
         cells,
       };
@@ -236,6 +248,7 @@ export function UnifiedQuotaSection({ files, loading }: UnifiedQuotaSectionProps
 
       return {
         id: `codex:${file.name}`,
+        serial: 0,
         fileName: file.name,
         cells,
         planLabel: getCodexPlanLabel(quota?.planType, t),
@@ -262,29 +275,43 @@ export function UnifiedQuotaSection({ files, loading }: UnifiedQuotaSectionProps
 
       return {
         id: `gemini:${file.name}`,
+        serial: 0,
         fileName: file.name,
         cells,
       };
     });
+
+    const antigravityRowsWithSerial = antigravityRows.map((row, index) => ({
+      ...row,
+      serial: index + 1,
+    }));
+    const codexRowsWithSerial = codexRows.map((row, index) => ({
+      ...row,
+      serial: index + 1,
+    }));
+    const geminiRowsWithSerial = geminiRows.map((row, index) => ({
+      ...row,
+      serial: index + 1,
+    }));
 
     return [
       {
         id: 'antigravity',
         label: t('antigravity_quota.title'),
         columns: antigravityColumns,
-        rows: antigravityRows,
+        rows: antigravityRowsWithSerial,
       },
       {
         id: 'codex',
         label: t('codex_quota.title'),
         columns: codexColumns,
-        rows: codexRows,
+        rows: codexRowsWithSerial,
       },
       {
         id: 'gemini-cli',
         label: t('gemini_cli_quota.title'),
         columns: geminiColumns,
-        rows: geminiRows,
+        rows: geminiRowsWithSerial,
       },
     ];
   }, [
@@ -322,32 +349,35 @@ export function UnifiedQuotaSection({ files, loading }: UnifiedQuotaSectionProps
                   );
                 })}
               </tr>
-              {group.rows.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <div className={styles.tableFileNameCell}>
-                      <span className={styles.tableFileName} title={row.fileName}>
-                        {row.fileName}
-                      </span>
-                      {row.planLabel ? <span className={styles.codexPlanBadge}>{row.planLabel}</span> : null}
-                    </div>
-                  </td>
-                  {[0, 1, 2].map((columnIndex) => {
-                    const cell = row.cells[columnIndex];
-                    return (
-                      <td key={`${row.id}-cell-${columnIndex}`}>
-                        {cell ? (
-                          <div className={styles.unifiedQuotaCell}>
-                            {cell}
-                          </div>
-                        ) : (
-                          <span className={styles.unifiedQuotaEmpty}>-</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {group.rows.map((row) => {
+                const displayFileName = formatDisplayFileName(row.fileName);
+                return (
+                  <tr key={row.id}>
+                    <td>
+                      <div className={styles.tableFileNameCell}>
+                        <span className={styles.tableFileName} title={displayFileName}>
+                          {`${row.serial}. ${displayFileName}`}
+                        </span>
+                        {row.planLabel ? <span className={styles.codexPlanBadge}>{row.planLabel}</span> : null}
+                      </div>
+                    </td>
+                    {[0, 1, 2].map((columnIndex) => {
+                      const cell = row.cells[columnIndex];
+                      return (
+                        <td key={`${row.id}-cell-${columnIndex}`}>
+                          {cell ? (
+                            <div className={styles.unifiedQuotaCell}>
+                              {cell}
+                            </div>
+                          ) : (
+                            <span className={styles.unifiedQuotaEmpty}>-</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </Fragment>
           ))}
         </tbody>

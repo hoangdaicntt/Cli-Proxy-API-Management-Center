@@ -22,13 +22,17 @@ export interface QuotaProgressBarProps {
   highThreshold: number;
   mediumThreshold: number;
   text?: string;
+  startText?: string;
+  centerText?: string;
 }
 
 export function QuotaProgressBar({
   percent,
   highThreshold,
   mediumThreshold,
-  text
+  text,
+  startText,
+  centerText
 }: QuotaProgressBarProps) {
   const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
@@ -42,6 +46,7 @@ export function QuotaProgressBar({
           ? styles.quotaBarFillMedium
           : styles.quotaBarFillLow;
   const widthPercent = Math.round(normalized ?? 0);
+  const centerLabel = centerText ?? text;
 
   return (
     <div className={styles.quotaBar}>
@@ -49,7 +54,8 @@ export function QuotaProgressBar({
         className={`${styles.quotaBarFill} ${fillClass}`}
         style={{ width: `${widthPercent}%` }}
       />
-      {text && <span className={styles.quotaBarText}>{text}</span>}
+      {startText && <span className={styles.quotaBarStartText}>{startText}</span>}
+      {centerLabel && <span className={styles.quotaBarText}>{centerLabel}</span>}
     </div>
   );
 }
