@@ -3,6 +3,7 @@
  */
 
 export { QuotaSection } from './QuotaSection';
+export { UnifiedQuotaSection } from './UnifiedQuotaSection';
 export { QuotaCard } from './QuotaCard';
 export { useQuotaLoader } from './useQuotaLoader';
 export { ANTIGRAVITY_CONFIG, CODEX_CONFIG, GEMINI_CLI_CONFIG } from './quotaConfigs';

@@ -1,5 +1,5 @@
 /**
- * Quota management page - coordinates the three quota sections.
+ * Quota management page - shows unified quota table.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -7,15 +7,9 @@ import { useTranslation } from 'react-i18next';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useAuthStore } from '@/stores';
 import { authFilesApi, configFileApi } from '@/services/api';
-import {
-  QuotaSection,
-  ANTIGRAVITY_CONFIG,
-  CODEX_CONFIG,
-  GEMINI_CLI_CONFIG
-} from '@/components/quota';
+import { UnifiedQuotaSection } from '@/components/quota';
 import type { AuthFileItem } from '@/types';
 import styles from './QuotaPage.module.scss';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 
@@ -66,15 +60,8 @@ export function QuotaPage() {
   return (
     <div className={styles.container}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>{t('quota_management.title')}</h1>
-        <p className={styles.description}>{t('quota_management.description')}</p>
-      </div>
-
-      {error && <div className={styles.errorBox}>{error}</div>}
-
-      <Card
-        title={t('quota_management.title')}
-        extra={
+        <div className={styles.pageHeaderTop}>
+          <h1 className={styles.pageTitle}>{t('quota_management.title')}</h1>
           <div className={styles.headerActions}>
             <Button
               variant="secondary"
@@ -88,27 +75,13 @@ export function QuotaPage() {
               {!loading && <IconRefreshCw size={16} />}
             </Button>
           </div>
-        }
-      >
-        <QuotaSection
-          config={ANTIGRAVITY_CONFIG}
-          files={files}
-          loading={loading}
-          disabled={disableControls}
-        />
-        <QuotaSection
-          config={CODEX_CONFIG}
-          files={files}
-          loading={loading}
-          disabled={disableControls}
-        />
-        <QuotaSection
-          config={GEMINI_CLI_CONFIG}
-          files={files}
-          loading={loading}
-          disabled={disableControls}
-        />
-      </Card>
+        </div>
+        <p className={styles.description}>{t('quota_management.description')}</p>
+      </div>
+
+      {error && <div className={styles.errorBox}>{error}</div>}
+
+      <UnifiedQuotaSection files={files} loading={loading} />
     </div>
   );
 }
