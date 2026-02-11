@@ -18,6 +18,46 @@ export function formatQuotaResetTime(value?: string): string {
   });
 }
 
+export function formatRemainingTime(targetDate?: string | number | Date): string {
+  if (!targetDate) return '';
+  
+  let target: Date;
+  if (typeof targetDate === 'string') {
+    target = new Date(targetDate);
+  } else if (typeof targetDate === 'number') {
+    // Check if timestamp is in seconds or milliseconds
+    // If less than year 3000 in seconds (32503680000), treat as seconds
+    // Otherwise treat as milliseconds
+    if (targetDate < 32503680000) {
+      target = new Date(targetDate * 1000);
+    } else {
+      target = new Date(targetDate);
+    }
+  } else {
+    target = targetDate;
+  }
+
+  if (Number.isNaN(target.getTime())) return '';
+
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
+
+  if (diffMs <= 0) return '';
+
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+
 export function formatUnixSeconds(value: number | null): string {
   if (!value) return '-';
   const date = new Date(value * 1000);
@@ -33,15 +73,22 @@ export function formatUnixSeconds(value: number | null): string {
 
 export function formatCodexResetLabel(window?: CodexUsageWindow | null): string {
   if (!window) return '-';
-  const resetAt = normalizeNumberValue(window.reset_at ?? window.resetAt);
-  if (resetAt !== null && resetAt > 0) {
-    return formatUnixSeconds(resetAt);
-  }
+  
   const resetAfter = normalizeNumberValue(window.reset_after_seconds ?? window.resetAfterSeconds);
   if (resetAfter !== null && resetAfter > 0) {
-    const targetSeconds = Math.floor(Date.now() / 1000 + resetAfter);
-    return formatUnixSeconds(targetSeconds);
+    const targetMs = Date.now() + (resetAfter * 1000);
+    return formatRemainingTime(targetMs);
   }
+
+  const resetAt = normalizeNumberValue(window.reset_at ?? window.resetAt);
+  if (resetAt !== null && resetAt > 0) {
+    // Check if resetAt is in future or past compared to now
+    // If it's a huge number, it might be milliseconds already
+    // If it's small (seconds), multiply by 1000
+    // But formatRemainingTime handles the heuristic for sec/ms
+    return formatRemainingTime(resetAt);
+  }
+
   return '-';
 }
 

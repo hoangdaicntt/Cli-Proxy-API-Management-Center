@@ -40,7 +40,7 @@ import {
   resolveCodexPlanType,
   resolveGeminiCliProjectId,
   formatCodexResetLabel,
-  formatQuotaResetTime,
+  formatRemainingTime,
   buildAntigravityQuotaGroups,
   buildGeminiCliQuotaBuckets,
   createStatusError,
@@ -417,7 +417,8 @@ const renderAntigravityItems = (
   return groups.map((group) => {
     const clamped = Math.max(0, Math.min(1, group.remainingFraction));
     const percent = Math.round(clamped * 100);
-    const resetLabel = formatQuotaResetTime(group.resetTime);
+    const resetLabel = formatRemainingTime(group.resetTime);
+    const text = resetLabel ? `${percent}% - ${resetLabel}` : `${percent}%`;
 
     return h(
       'div',
@@ -425,18 +426,18 @@ const renderAntigravityItems = (
       h(
         'div',
         { className: styleMap.quotaRowHeader },
-        h('span', { className: styleMap.quotaModel, title: group.models.join(', ') }, group.label),
-        h(
-          'div',
-          { className: styleMap.quotaMeta },
-          h('span', { className: styleMap.quotaPercent }, `${percent}%`),
-          h('span', { className: styleMap.quotaReset }, resetLabel)
-        )
+        h('span', { className: styleMap.quotaModel, title: group.models.join(', ') }, group.label)
       ),
-      h(QuotaProgressBar, { percent, highThreshold: 60, mediumThreshold: 20 })
+      h(QuotaProgressBar, {
+        percent,
+        highThreshold: 60,
+        mediumThreshold: 20,
+        text
+      })
     );
   });
 };
+
 
 const renderCodexItems = (
   quota: CodexQuotaState,
@@ -485,6 +486,9 @@ const renderCodexItems = (
       const remaining = clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
       const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
       const windowLabel = window.labelKey ? t(window.labelKey) : window.label;
+      const text = window.resetLabel && window.resetLabel !== '-' && window.resetLabel !== ''
+        ? `${percentLabel} - ${window.resetLabel}`
+        : percentLabel;
 
       return h(
         'div',
@@ -492,15 +496,14 @@ const renderCodexItems = (
         h(
           'div',
           { className: styleMap.quotaRowHeader },
-          h('span', { className: styleMap.quotaModel }, windowLabel),
-          h(
-            'div',
-            { className: styleMap.quotaMeta },
-            h('span', { className: styleMap.quotaPercent }, percentLabel),
-            h('span', { className: styleMap.quotaReset }, window.resetLabel)
-          )
+          h('span', { className: styleMap.quotaModel }, windowLabel)
         ),
-        h(QuotaProgressBar, { percent: remaining, highThreshold: 80, mediumThreshold: 50 })
+        h(QuotaProgressBar, {
+          percent: remaining,
+          highThreshold: 80,
+          mediumThreshold: 50,
+          text
+        })
       );
     })
   );
@@ -536,7 +539,15 @@ const renderGeminiCliItems = (
       bucket.modelIds && bucket.modelIds.length > 0 ? bucket.modelIds.join(', ') : bucket.label;
     const title = bucket.tokenType ? `${titleBase} (${bucket.tokenType})` : titleBase;
 
-    const resetLabel = formatQuotaResetTime(bucket.resetTime);
+    const resetLabel = formatRemainingTime(bucket.resetTime);
+
+    let text = percentLabel;
+    if (remainingAmountLabel) {
+      text += ` - ${remainingAmountLabel}`;
+    }
+    if (resetLabel) {
+      text += ` - ${resetLabel}`;
+    }
 
     return h(
       'div',
@@ -544,18 +555,14 @@ const renderGeminiCliItems = (
       h(
         'div',
         { className: styleMap.quotaRowHeader },
-        h('span', { className: styleMap.quotaModel, title }, bucket.label),
-        h(
-          'div',
-          { className: styleMap.quotaMeta },
-          h('span', { className: styleMap.quotaPercent }, percentLabel),
-          remainingAmountLabel
-            ? h('span', { className: styleMap.quotaAmount }, remainingAmountLabel)
-            : null,
-          h('span', { className: styleMap.quotaReset }, resetLabel)
-        )
+        h('span', { className: styleMap.quotaModel, title }, bucket.label)
       ),
-      h(QuotaProgressBar, { percent, highThreshold: 60, mediumThreshold: 20 })
+      h(QuotaProgressBar, {
+        percent,
+        highThreshold: 60,
+        mediumThreshold: 20,
+        text
+      })
     );
   });
 };
@@ -598,18 +605,18 @@ export const ANTIGRAVITY_CONFIG: QuotaConfig<AntigravityQuotaState, AntigravityQ
 
     const clamped = Math.max(0, Math.min(1, group.remainingFraction));
     const percent = Math.round(clamped * 100);
-    const resetLabel = formatQuotaResetTime(group.resetTime);
+    const resetLabel = formatRemainingTime(group.resetTime);
+    const text = resetLabel ? `${percent}% - ${resetLabel}` : `${percent}%`;
 
     return h(
       'div',
       { className: styleMap.quotaCell },
-      h(
-        'div',
-        { className: styleMap.quotaMeta },
-        h('span', { className: styleMap.quotaPercent }, `${percent}%`),
-        h('span', { className: styleMap.quotaReset }, resetLabel)
-      ),
-      h(QuotaProgressBar, { percent, highThreshold: 60, mediumThreshold: 20 })
+      h(QuotaProgressBar, {
+        percent,
+        highThreshold: 60,
+        mediumThreshold: 20,
+        text
+      })
     );
   },
 };
@@ -679,17 +686,19 @@ export const CODEX_CONFIG: QuotaConfig<
     const clampedUsed = used === null ? null : Math.max(0, Math.min(100, used));
     const remaining = clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
     const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
+    const text = window.resetLabel && window.resetLabel !== '-' && window.resetLabel !== ''
+      ? `${percentLabel} - ${window.resetLabel}`
+      : percentLabel;
 
     return h(
       'div',
       { className: styleMap.quotaCell },
-      h(
-        'div',
-        { className: styleMap.quotaMeta },
-        h('span', { className: styleMap.quotaPercent }, percentLabel),
-        h('span', { className: styleMap.quotaReset }, window.resetLabel)
-      ),
-      h(QuotaProgressBar, { percent: remaining, highThreshold: 80, mediumThreshold: 50 })
+      h(QuotaProgressBar, {
+        percent: remaining,
+        highThreshold: 80,
+        mediumThreshold: 50,
+        text
+      })
     );
   },
 };
@@ -731,7 +740,6 @@ export const GEMINI_CLI_CONFIG: QuotaConfig<GeminiCliQuotaState, GeminiCliQuotaB
     const clamped = fraction === null ? null : Math.max(0, Math.min(1, fraction));
     const percent = clamped === null ? null : Math.round(clamped * 100);
     const percentLabel = percent === null ? '--' : `${percent}%`;
-    const resetLabel = formatQuotaResetTime(bucket.resetTime);
     const remainingAmountLabel =
       bucket.remainingAmount === null || bucket.remainingAmount === undefined
         ? null
@@ -739,21 +747,25 @@ export const GEMINI_CLI_CONFIG: QuotaConfig<GeminiCliQuotaState, GeminiCliQuotaB
             count: bucket.remainingAmount,
           });
 
+    const resetLabel = formatRemainingTime(bucket.resetTime);
+    let text = percentLabel;
+    if (remainingAmountLabel) {
+      text += ` - ${remainingAmountLabel}`;
+    }
+    if (resetLabel) {
+      text += ` - ${resetLabel}`;
+    }
+
     return h(
       'div',
       { className: styleMap.quotaCell },
-      h(
-        'div',
-        { className: styleMap.quotaMeta },
-        h('span', { className: styleMap.quotaPercent }, percentLabel),
-        remainingAmountLabel
-          ? h('span', { className: styleMap.quotaAmount }, remainingAmountLabel)
-          : null,
-        h('span', { className: styleMap.quotaReset }, resetLabel)
-      ),
-      h(QuotaProgressBar, { percent, highThreshold: 60, mediumThreshold: 20 })
+      h(QuotaProgressBar, {
+        percent,
+        highThreshold: 60,
+        mediumThreshold: 20,
+        text
+      })
     );
   },
 };
-
 
