@@ -85,6 +85,8 @@ export interface QuotaConfig<TState, TData> {
   controlClassName: string;
   gridClassName: string;
   renderQuotaItems: (quota: TState, t: TFunction, helpers: QuotaRenderHelpers) => ReactNode;
+  getQuotaColumns: (quota: TState, t: TFunction) => { id: string; label: string }[];
+  renderQuotaCell: (quota: TState, columnId: string, t: TFunction, helpers: QuotaRenderHelpers) => ReactNode;
 }
 
 const resolveAntigravityProjectId = async (file: AuthFileItem): Promise<string> => {
@@ -578,6 +580,47 @@ export const ANTIGRAVITY_CONFIG: QuotaConfig<AntigravityQuotaState, AntigravityQ
   controlClassName: styles.antigravityControl,
   gridClassName: styles.antigravityGrid,
   renderQuotaItems: renderAntigravityItems,
+  getQuotaColumns: (quota: AntigravityQuotaState) => {
+    const hiddenLabels = ['Gemini 2.5 Flash', 'Gemini 2.5 Flash Lite', 'Gemini 3 Pro Image'];
+    return (quota.groups || [])
+      .filter((group) => !hiddenLabels.includes(group.label))
+      .map((group) => ({
+        id: group.id,
+        label: group.label,
+      }));
+  },
+  renderQuotaCell: (quota: AntigravityQuotaState, columnId: string, _t: TFunction, helpers: QuotaRenderHelpers) => {
+    const { styles: styleMap, QuotaProgressBar } = helpers;
+    const { createElement: h } = React;
+    const group = quota.groups?.find((g) => g.id === columnId);
+
+    if (!group) return null;
+
+    const clamped = Math.max(0, Math.min(1, group.remainingFraction));
+    const percent = Math.round(clamped * 100);
+    const resetLabel = formatQuotaResetTime(group.resetTime);
+
+    return h(
+      'div',
+      { className: styleMap.quotaCell },
+      h(
+        'div',
+        { className: styleMap.quotaMeta },
+        h('span', { className: styleMap.quotaPercent }, `${percent}%`),
+        h('span', { className: styleMap.quotaReset }, resetLabel)
+      ),
+      h(QuotaProgressBar, { percent, highThreshold: 60, mediumThreshold: 20 })
+    );
+  },
+};
+
+const getCodexPlanLabel = (pt: string | null, t: TFunction): string | null => {
+  const normalized = normalizePlanType(pt);
+  if (!normalized) return null;
+  if (normalized === 'plus') return t('codex_quota.plan_plus');
+  if (normalized === 'team') return t('codex_quota.plan_team');
+  if (normalized === 'free') return t('codex_quota.plan_free');
+  return pt || normalized;
 };
 
 export const CODEX_CONFIG: QuotaConfig<
@@ -607,6 +650,48 @@ export const CODEX_CONFIG: QuotaConfig<
   controlClassName: styles.codexControl,
   gridClassName: styles.codexGrid,
   renderQuotaItems: renderCodexItems,
+  getQuotaColumns: (quota: CodexQuotaState, t: TFunction) => {
+    const cols: { id: string; label: string }[] = [];
+    if (quota.planType) {
+      cols.push({ id: 'plan', label: t('codex_quota.plan_label') });
+    }
+    (quota.windows || []).forEach((window) => {
+      cols.push({
+        id: window.id,
+        label: window.labelKey ? t(window.labelKey) : window.label,
+      });
+    });
+    return cols;
+  },
+  renderQuotaCell: (quota: CodexQuotaState, columnId: string, t: TFunction, helpers: QuotaRenderHelpers) => {
+    const { styles: styleMap, QuotaProgressBar } = helpers;
+    const { createElement: h } = React;
+
+    if (columnId === 'plan') {
+      const planLabel = getCodexPlanLabel(quota.planType ?? null, t);
+      return h('span', { className: styleMap.codexPlanValue }, planLabel);
+    }
+
+    const window = quota.windows?.find((w) => w.id === columnId);
+    if (!window) return null;
+
+    const used = window.usedPercent;
+    const clampedUsed = used === null ? null : Math.max(0, Math.min(100, used));
+    const remaining = clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
+    const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
+
+    return h(
+      'div',
+      { className: styleMap.quotaCell },
+      h(
+        'div',
+        { className: styleMap.quotaMeta },
+        h('span', { className: styleMap.quotaPercent }, percentLabel),
+        h('span', { className: styleMap.quotaReset }, window.resetLabel)
+      ),
+      h(QuotaProgressBar, { percent: remaining, highThreshold: 80, mediumThreshold: 50 })
+    );
+  },
 };
 
 export const GEMINI_CLI_CONFIG: QuotaConfig<GeminiCliQuotaState, GeminiCliQuotaBucketState[]> = {
@@ -630,4 +715,45 @@ export const GEMINI_CLI_CONFIG: QuotaConfig<GeminiCliQuotaState, GeminiCliQuotaB
   controlClassName: styles.geminiCliControl,
   gridClassName: styles.geminiCliGrid,
   renderQuotaItems: renderGeminiCliItems,
+  getQuotaColumns: (quota: GeminiCliQuotaState) => {
+    return (quota.buckets || []).map((bucket) => ({
+      id: bucket.id,
+      label: bucket.label,
+    }));
+  },
+  renderQuotaCell: (quota: GeminiCliQuotaState, columnId: string, t: TFunction, helpers: QuotaRenderHelpers) => {
+    const { styles: styleMap, QuotaProgressBar } = helpers;
+    const { createElement: h } = React;
+    const bucket = quota.buckets?.find((b) => b.id === columnId);
+    if (!bucket) return null;
+
+    const fraction = bucket.remainingFraction;
+    const clamped = fraction === null ? null : Math.max(0, Math.min(1, fraction));
+    const percent = clamped === null ? null : Math.round(clamped * 100);
+    const percentLabel = percent === null ? '--' : `${percent}%`;
+    const resetLabel = formatQuotaResetTime(bucket.resetTime);
+    const remainingAmountLabel =
+      bucket.remainingAmount === null || bucket.remainingAmount === undefined
+        ? null
+        : t('gemini_cli_quota.remaining_amount', {
+            count: bucket.remainingAmount,
+          });
+
+    return h(
+      'div',
+      { className: styleMap.quotaCell },
+      h(
+        'div',
+        { className: styleMap.quotaMeta },
+        h('span', { className: styleMap.quotaPercent }, percentLabel),
+        remainingAmountLabel
+          ? h('span', { className: styleMap.quotaAmount }, remainingAmountLabel)
+          : null,
+        h('span', { className: styleMap.quotaReset }, resetLabel)
+      ),
+      h(QuotaProgressBar, { percent, highThreshold: 60, mediumThreshold: 20 })
+    );
+  },
 };
+
+

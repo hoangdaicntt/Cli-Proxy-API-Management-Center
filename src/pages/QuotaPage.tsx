@@ -15,6 +15,9 @@ import {
 } from '@/components/quota';
 import type { AuthFileItem } from '@/types';
 import styles from './QuotaPage.module.scss';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { IconRefreshCw } from '@/components/ui/icons';
 
 export function QuotaPage() {
   const { t } = useTranslation();
@@ -69,24 +72,43 @@ export function QuotaPage() {
 
       {error && <div className={styles.errorBox}>{error}</div>}
 
-      <QuotaSection
-        config={ANTIGRAVITY_CONFIG}
-        files={files}
-        loading={loading}
-        disabled={disableControls}
-      />
-      <QuotaSection
-        config={CODEX_CONFIG}
-        files={files}
-        loading={loading}
-        disabled={disableControls}
-      />
-      <QuotaSection
-        config={GEMINI_CLI_CONFIG}
-        files={files}
-        loading={loading}
-        disabled={disableControls}
-      />
+      <Card
+        title={t('quota_management.title')}
+        extra={
+          <div className={styles.headerActions}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleHeaderRefresh}
+              disabled={disableControls || loading}
+              loading={loading}
+              title={t('quota_management.refresh_files_and_quota')}
+              aria-label={t('quota_management.refresh_files_and_quota')}
+            >
+              {!loading && <IconRefreshCw size={16} />}
+            </Button>
+          </div>
+        }
+      >
+        <QuotaSection
+          config={ANTIGRAVITY_CONFIG}
+          files={files}
+          loading={loading}
+          disabled={disableControls}
+        />
+        <QuotaSection
+          config={CODEX_CONFIG}
+          files={files}
+          loading={loading}
+          disabled={disableControls}
+        />
+        <QuotaSection
+          config={GEMINI_CLI_CONFIG}
+          files={files}
+          loading={loading}
+          disabled={disableControls}
+        />
+      </Card>
     </div>
   );
 }

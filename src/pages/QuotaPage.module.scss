@@ -207,7 +207,7 @@
 }
 
 .quotaBar {
-  height: 8px;
+  height: 4px;
   background-color: var(--bg-tertiary);
   border-radius: 999px;
   overflow: hidden;
@@ -235,7 +235,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-secondary);
   white-space: nowrap;
 
@@ -386,4 +386,49 @@
     font-size: 14px;
     line-height: 1.6;
   }
+}
+
+.quotaTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  
+  th, td {
+    padding: $spacing-xs $spacing-sm;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    white-space: nowrap;
+  }
+
+  td {
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+
+  /* File name column width */
+  th:first-child, td:first-child {
+    width: 200px;
+    max-width: 300px;
+  }
+}
+
+.tableFileName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.quotaCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
 }
