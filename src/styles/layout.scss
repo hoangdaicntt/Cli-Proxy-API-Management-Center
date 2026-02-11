@@ -95,7 +95,10 @@
   }
 
   .segmented-item {
-    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
     border-radius: $radius-md;
     font-size: 13px;
     font-weight: 500;
@@ -103,6 +106,18 @@
     text-decoration: none;
     transition: all $transition-fast;
     white-space: nowrap;
+    line-height: 1;
+
+    .nav-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
 
     &:hover {
       color: var(--text-primary);
@@ -136,11 +151,6 @@
     gap: $spacing-sm;
     transform-origin: top right;
     animation: menu-enter 0.2s ease-out;
-
-    &.entering {
-      opacity: 0;
-      transform: scale(0.95);
-    }
   }
 
   .menu-section {
@@ -262,71 +272,16 @@
     font-weight: 800;
     font-size: 18px;
     color: var(--text-primary);
-    margin-right: $spacing-md;
     cursor: pointer;
-    overflow: hidden;
     white-space: nowrap;
     flex-shrink: 0;
 
-    .brand-full {
-      display: inline-block;
-      max-width: 320px;
-      opacity: 1;
-      transform: translateX(0);
-      transition: max-width 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
-    }
-
     .brand-abbr {
       display: inline-block;
-      transform: translateX(12px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-
-    &.collapsed {
-      .brand-full {
-        max-width: 0;
-        opacity: 0;
-        transform: translateX(-12px);
-      }
-
-      .brand-abbr {
-        transform: translateX(0);
-        opacity: 1;
-        pointer-events: auto;
-      }
     }
 
     &:hover {
       color: var(--primary-color);
-    }
-
-    // 移动端：禁用动画，只显示缩写
-    @media (max-width: $breakpoint-mobile) {
-      cursor: default;
-      flex-shrink: 1;
-      min-width: 0;
-      margin-right: 0;
-
-      .brand-full,
-      .brand-abbr {
-        transition: none;
-      }
-
-      .brand-full {
-        display: none;
-      }
-
-      .brand-abbr {
-        transform: translateX(0);
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      &:hover {
-        color: var(--text-primary);
-      }
     }
   }
 

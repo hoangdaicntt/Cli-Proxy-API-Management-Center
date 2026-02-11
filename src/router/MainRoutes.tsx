@@ -20,7 +20,7 @@ import { LogsPage } from '@/pages/LogsPage';
 import { SystemPage } from '@/pages/SystemPage';
 
 const mainRoutes = [
-  { path: '/', element: <DashboardPage /> },
+  { path: '/', element: <Navigate to="/quota" replace /> },
   { path: '/dashboard', element: <DashboardPage /> },
   { path: '/settings', element: <Navigate to="/config" replace /> },
   { path: '/api-keys', element: <Navigate to="/config" replace /> },

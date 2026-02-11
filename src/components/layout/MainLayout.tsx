@@ -176,9 +176,7 @@ export function MainLayout() {
   const { showNotification } = useNotificationStore();
   const location = useLocation();
 
-  const apiBase = useAuthStore((state) => state.apiBase);
   const serverVersion = useAuthStore((state) => state.serverVersion);
-  const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const logout = useAuthStore((state) => state.logout);
 
   const config = useConfigStore((state) => state.config);
@@ -192,18 +190,17 @@ export function MainLayout() {
 
   const [mainMenuOpen, setMainMenuOpen] = useState(false);
   const [checkingVersion, setCheckingVersion] = useState(false);
-  const [brandExpanded, setBrandExpanded] = useState(true);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const mainMenuRef = useRef<HTMLDivElement | null>(null);
-  const brandCollapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
 
-  const fullBrandName = 'CLI Proxy API Management Center';
   const abbrBrandName = t('title.abbr');
   const isLogsPage = location.pathname.startsWith('/logs');
 
   // Close menu on click outside
   useEffect(() => {
+
+
     if (!mainMenuOpen) return;
     const handlePointerDown = (event: MouseEvent) => {
       if (!mainMenuRef.current?.contains(event.target as Node)) {
@@ -275,31 +272,7 @@ export function MainLayout() {
     };
   }, []);
 
-  // 5秒后自动收起品牌名称
-  useEffect(() => {
-    brandCollapseTimer.current = setTimeout(() => {
-      setBrandExpanded(false);
-    }, 5000);
-
-    return () => {
-      if (brandCollapseTimer.current) {
-        clearTimeout(brandCollapseTimer.current);
-      }
-    };
-  }, []);
-
-  const handleBrandClick = useCallback(() => {
-    if (!brandExpanded) {
-      setBrandExpanded(true);
-      // 点击展开后，5秒后再次收起
-      if (brandCollapseTimer.current) {
-        clearTimeout(brandCollapseTimer.current);
-      }
-      brandCollapseTimer.current = setTimeout(() => {
-        setBrandExpanded(false);
-      }, 5000);
-    }
-  }, [brandExpanded]);
+  // 5秒后自动收起品牌名称 - REMOVED
 
   const toggleMainMenu = useCallback(() => {
     setMainMenuOpen((prev) => !prev);
@@ -322,24 +295,17 @@ export function MainLayout() {
     });
   }, [fetchConfig]);
 
-
-  const statusClass =
-    connectionStatus === 'connected'
-      ? 'success'
-      : connectionStatus === 'connecting'
-        ? 'warning'
-        : connectionStatus === 'error'
-          ? 'error'
-          : 'muted';
-
   const centerNavItems = [
-    { path: '/quota', label: t('nav.quota_management') },
-    { path: '/usage', label: t('nav.usage_stats') },
-    ...(config?.loggingToFile ? [{ path: '/logs', label: t('nav.logs') }] : []),
+    { path: '/quota', label: t('nav.quota_management'), icon: sidebarIcons.quota },
+    { path: '/usage', label: t('nav.usage_stats'), icon: sidebarIcons.usage },
+    ...(config?.loggingToFile ? [{ path: '/logs', label: t('nav.logs'), icon: sidebarIcons.logs }] : []),
   ];
 
   const dropdownNavItems = [
-    { path: '/', label: t('nav.dashboard'), icon: sidebarIcons.dashboard },
+    { path: '/dashboard', label: t('nav.dashboard'), icon: sidebarIcons.dashboard },
+    { path: '/quota', label: t('nav.quota_management'), icon: sidebarIcons.quota },
+    { path: '/usage', label: t('nav.usage_stats'), icon: sidebarIcons.usage },
+    ...(config?.loggingToFile ? [{ path: '/logs', label: t('nav.logs'), icon: sidebarIcons.logs }] : []),
     { path: '/config', label: t('nav.config_management'), icon: sidebarIcons.config },
     { path: '/ai-providers', label: t('nav.ai_providers'), icon: sidebarIcons.aiProviders },
     { path: '/auth-files', label: t('nav.auth_files'), icon: sidebarIcons.authFiles },
@@ -465,12 +431,7 @@ export function MainLayout() {
       <header className="main-header" ref={headerRef}>
         <div className="left">
           <img src={INLINE_LOGO_JPEG} alt="CPAMC logo" className="brand-logo" />
-          <div
-            className={`brand-header ${brandExpanded ? 'expanded' : 'collapsed'}`}
-            onClick={handleBrandClick}
-            title={brandExpanded ? undefined : fullBrandName}
-          >
-            <span className="brand-full">{fullBrandName}</span>
+          <div className="brand-header">
             <span className="brand-abbr">{abbrBrandName}</span>
           </div>
         </div>
@@ -483,26 +444,14 @@ export function MainLayout() {
                 to={item.path}
                 className={({ isActive }) => `segmented-item ${isActive ? 'active' : ''}`}
               >
-                {item.label}
+                <span className="nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
               </NavLink>
             ))}
           </nav>
         </div>
 
         <div className="right">
-          <div className="connection">
-            <span className={`status-badge ${statusClass}`}>
-              {t(
-                connectionStatus === 'connected'
-                  ? 'common.connected_status'
-                  : connectionStatus === 'connecting'
-                    ? 'common.connecting_status'
-                    : 'common.disconnected_status'
-              )}
-            </span>
-            <span className="base">{apiBase || '-'}</span>
-          </div>
-
           <div className="menu-trigger" ref={mainMenuRef}>
             <Button
               variant="ghost"
@@ -515,7 +464,7 @@ export function MainLayout() {
             </Button>
 
             {mainMenuOpen && (
-              <div className="main-menu-popover entering">
+              <div className="main-menu-popover">
                 <div className="menu-section">
                   <span className="menu-section-title">{t('common.navigation')}</span>
                   {dropdownNavItems.map((item) => (
@@ -554,7 +503,7 @@ export function MainLayout() {
                       {theme === 'auto' ? 'Auto' : theme === 'dark' ? 'Dark' : 'Light'}
                     </span>
                   </button>
-                  
+
                   {/* Language Selection */}
                   <div className="menu-item" style={{ cursor: 'default', pointerEvents: 'none' }}>
                     <span className="menu-icon">{headerIcons.language}</span>
@@ -575,7 +524,7 @@ export function MainLayout() {
                   </div>
 
                   <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }}></div>
-                  
+
                   <button className="menu-item" onClick={logout} style={{ color: 'var(--danger-color)' }}>
                     <span className="menu-icon" style={{ color: 'var(--danger-color)' }}>{headerIcons.logout}</span>
                     <span className="menu-label">{t('header.logout')}</span>
