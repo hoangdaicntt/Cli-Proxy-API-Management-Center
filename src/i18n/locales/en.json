@@ -44,7 +44,9 @@
     "custom_headers_key_placeholder": "Header name, e.g. X-Custom-Header",
     "custom_headers_value_placeholder": "Header value",
     "model_name_placeholder": "Model name, e.g. claude-3-5-sonnet-20241022",
-    "model_alias_placeholder": "Model alias (optional)"
+    "model_alias_placeholder": "Model alias (optional)",
+    "navigation": "Navigation",
+    "actions": "Actions"
   },
   "title": {
     "main": "CLI Proxy API Management Center",

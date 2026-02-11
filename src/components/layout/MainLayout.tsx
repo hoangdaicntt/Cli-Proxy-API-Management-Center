@@ -190,19 +190,29 @@ export function MainLayout() {
   const language = useLanguageStore((state) => state.language);
   const setLanguage = useLanguageStore((state) => state.setLanguage);
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mainMenuOpen, setMainMenuOpen] = useState(false);
   const [checkingVersion, setCheckingVersion] = useState(false);
-  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [brandExpanded, setBrandExpanded] = useState(true);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const languageMenuRef = useRef<HTMLDivElement | null>(null);
+  const mainMenuRef = useRef<HTMLDivElement | null>(null);
   const brandCollapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
 
   const fullBrandName = 'CLI Proxy API Management Center';
   const abbrBrandName = t('title.abbr');
   const isLogsPage = location.pathname.startsWith('/logs');
+
+  // Close menu on click outside
+  useEffect(() => {
+    if (!mainMenuOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!mainMenuRef.current?.contains(event.target as Node)) {
+        setMainMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [mainMenuOpen]);
 
   // 将顶栏高度写入 CSS 变量，确保侧栏/内容区计算一致，防止滚动时抖动
   useLayoutEffect(() => {
@@ -278,32 +288,6 @@ export function MainLayout() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!languageMenuOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!languageMenuRef.current?.contains(event.target as Node)) {
-        setLanguageMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setLanguageMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [languageMenuOpen]);
-
   const handleBrandClick = useCallback(() => {
     if (!brandExpanded) {
       setBrandExpanded(true);
@@ -317,8 +301,8 @@ export function MainLayout() {
     }
   }, [brandExpanded]);
 
-  const toggleLanguageMenu = useCallback(() => {
-    setLanguageMenuOpen((prev) => !prev);
+  const toggleMainMenu = useCallback(() => {
+    setMainMenuOpen((prev) => !prev);
   }, []);
 
   const handleLanguageSelect = useCallback(
@@ -327,7 +311,7 @@ export function MainLayout() {
         return;
       }
       setLanguage(nextLanguage);
-      setLanguageMenuOpen(false);
+      setMainMenuOpen(false);
     },
     [setLanguage]
   );
@@ -348,20 +332,24 @@ export function MainLayout() {
           ? 'error'
           : 'muted';
 
-  const navItems = [
+  const centerNavItems = [
+    { path: '/quota', label: t('nav.quota_management') },
+    { path: '/usage', label: t('nav.usage_stats') },
+    ...(config?.loggingToFile ? [{ path: '/logs', label: t('nav.logs') }] : []),
+  ];
+
+  const dropdownNavItems = [
     { path: '/', label: t('nav.dashboard'), icon: sidebarIcons.dashboard },
     { path: '/config', label: t('nav.config_management'), icon: sidebarIcons.config },
     { path: '/ai-providers', label: t('nav.ai_providers'), icon: sidebarIcons.aiProviders },
     { path: '/auth-files', label: t('nav.auth_files'), icon: sidebarIcons.authFiles },
     { path: '/oauth', label: t('nav.oauth', { defaultValue: 'OAuth' }), icon: sidebarIcons.oauth },
-    { path: '/quota', label: t('nav.quota_management'), icon: sidebarIcons.quota },
-    { path: '/usage', label: t('nav.usage_stats'), icon: sidebarIcons.usage },
-    ...(config?.loggingToFile
-      ? [{ path: '/logs', label: t('nav.logs'), icon: sidebarIcons.logs }]
-      : []),
     { path: '/system', label: t('nav.system_info'), icon: sidebarIcons.system },
   ];
-  const navOrder = navItems.map((item) => item.path);
+
+  const allNavItems = [...centerNavItems, ...dropdownNavItems];
+  const navOrder = allNavItems.map((item) => item.path);
+
   const getRouteOrder = (pathname: string) => {
     const trimmedPath =
       pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
@@ -435,6 +423,7 @@ export function MainLayout() {
       return;
     }
     showNotification(t('notification.data_refreshed'), 'success');
+    setMainMenuOpen(false);
   };
 
   const handleVersionCheck = async () => {
@@ -467,6 +456,7 @@ export function MainLayout() {
       showNotification(`${t('system_info.version_check_error')}${suffix}`, 'error');
     } finally {
       setCheckingVersion(false);
+      setMainMenuOpen(false);
     }
   };
 
@@ -474,17 +464,6 @@ export function MainLayout() {
     <div className="app-shell">
       <header className="main-header" ref={headerRef}>
         <div className="left">
-          <button
-            className="sidebar-toggle-header"
-            onClick={() => setSidebarCollapsed((prev) => !prev)}
-            title={
-              sidebarCollapsed
-                ? t('sidebar.expand', { defaultValue: '展开' })
-                : t('sidebar.collapse', { defaultValue: '收起' })
-            }
-          >
-            {sidebarCollapsed ? headerIcons.chevronRight : headerIcons.chevronLeft}
-          </button>
           <img src={INLINE_LOGO_JPEG} alt="CPAMC logo" className="brand-logo" />
           <div
             className={`brand-header ${brandExpanded ? 'expanded' : 'collapsed'}`}
@@ -494,6 +473,20 @@ export function MainLayout() {
             <span className="brand-full">{fullBrandName}</span>
             <span className="brand-abbr">{abbrBrandName}</span>
           </div>
+        </div>
+
+        <div className="center">
+          <nav className="segmented-menu">
+            {centerNavItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => `segmented-item ${isActive ? 'active' : ''}`}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
         <div className="right">
@@ -510,96 +503,91 @@ export function MainLayout() {
             <span className="base">{apiBase || '-'}</span>
           </div>
 
-          <div className="header-actions">
+          <div className="menu-trigger" ref={mainMenuRef}>
             <Button
-              className="mobile-menu-btn"
               variant="ghost"
               size="sm"
-              onClick={() => setSidebarOpen((prev) => !prev)}
+              onClick={toggleMainMenu}
+              aria-label="Main Menu"
+              className={mainMenuOpen ? 'active' : ''}
             >
               {headerIcons.menu}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRefreshAll}
-              title={t('header.refresh_all')}
-            >
-              {headerIcons.refresh}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleVersionCheck}
-              loading={checkingVersion}
-              title={t('system_info.version_check_button')}
-            >
-              {headerIcons.update}
-            </Button>
-            <div className={`language-menu ${languageMenuOpen ? 'open' : ''}`} ref={languageMenuRef}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleLanguageMenu}
-                title={t('language.switch')}
-                aria-label={t('language.switch')}
-                aria-haspopup="menu"
-                aria-expanded={languageMenuOpen}
-              >
-                {headerIcons.language}
-              </Button>
-              {languageMenuOpen && (
-                <div className="notification entering language-menu-popover" role="menu" aria-label={t('language.switch')}>
-                  {LANGUAGE_ORDER.map((lang) => (
-                    <button
-                      key={lang}
-                      type="button"
-                      className={`language-menu-option ${language === lang ? 'active' : ''}`}
-                      onClick={() => handleLanguageSelect(lang)}
-                      role="menuitemradio"
-                      aria-checked={language === lang}
+
+            {mainMenuOpen && (
+              <div className="main-menu-popover entering">
+                <div className="menu-section">
+                  <span className="menu-section-title">{t('common.navigation')}</span>
+                  {dropdownNavItems.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
+                      onClick={() => setMainMenuOpen(false)}
                     >
-                      <span>{t(LANGUAGE_LABEL_KEYS[lang])}</span>
-                      {language === lang ? <span className="language-menu-check">✓</span> : null}
-                    </button>
+                      <span className="menu-icon">{item.icon}</span>
+                      <span className="menu-label">{item.label}</span>
+                    </NavLink>
                   ))}
                 </div>
-              )}
-            </div>
-            <Button variant="ghost" size="sm" onClick={cycleTheme} title={t('theme.switch')}>
-              {theme === 'auto'
-                ? headerIcons.autoTheme
-                : theme === 'dark'
-                  ? headerIcons.moon
-                  : headerIcons.sun}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={logout} title={t('header.logout')}>
-              {headerIcons.logout}
-            </Button>
+
+                <div className="menu-section">
+                  <span className="menu-section-title">{t('common.actions')}</span>
+                  <button className="menu-item" onClick={handleRefreshAll}>
+                    <span className="menu-icon">{headerIcons.refresh}</span>
+                    <span className="menu-label">{t('header.refresh_all')}</span>
+                  </button>
+                  <button className="menu-item" onClick={handleVersionCheck} disabled={checkingVersion}>
+                    <span className="menu-icon">{headerIcons.update}</span>
+                    <span className="menu-label">{t('system_info.version_check_button')}</span>
+                  </button>
+                  <button className="menu-item" onClick={cycleTheme}>
+                    <span className="menu-icon">
+                      {theme === 'auto'
+                        ? headerIcons.autoTheme
+                        : theme === 'dark'
+                          ? headerIcons.moon
+                          : headerIcons.sun}
+                    </span>
+                    <span className="menu-label">{t('theme.switch')}</span>
+                    <span className="menu-shortcut">
+                      {theme === 'auto' ? 'Auto' : theme === 'dark' ? 'Dark' : 'Light'}
+                    </span>
+                  </button>
+                  
+                  {/* Language Selection */}
+                  <div className="menu-item" style={{ cursor: 'default', pointerEvents: 'none' }}>
+                    <span className="menu-icon">{headerIcons.language}</span>
+                    <span className="menu-label">{t('language.switch')}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', padding: '0 12px 8px 12px', flexWrap: 'wrap' }}>
+                    {LANGUAGE_ORDER.map((lang) => (
+                      <Button
+                        key={lang}
+                        variant={language === lang ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => handleLanguageSelect(lang)}
+                        style={{ fontSize: '12px', padding: '4px 8px', height: '24px' }}
+                      >
+                        {t(LANGUAGE_LABEL_KEYS[lang])}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }}></div>
+                  
+                  <button className="menu-item" onClick={logout} style={{ color: 'var(--danger-color)' }}>
+                    <span className="menu-icon" style={{ color: 'var(--danger-color)' }}>{headerIcons.logout}</span>
+                    <span className="menu-label">{t('header.logout')}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <div className="main-body">
-        <aside
-          className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}
-        >
-          <div className="nav-section">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => setSidebarOpen(false)}
-                title={sidebarCollapsed ? item.label : undefined}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
-              </NavLink>
-            ))}
-          </div>
-        </aside>
-
         <div className={`content${isLogsPage ? ' content-logs' : ''}`} ref={contentRef}>
           <main className={`main-content${isLogsPage ? ' main-content-logs' : ''}`}>
             <PageTransition
